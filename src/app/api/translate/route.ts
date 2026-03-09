@@ -1,11 +1,17 @@
 import { getGlossary, getPrompt } from "@/lib/storage";
-import { buildSystemPrompt, getDefaultPromptContent } from "@/lib/translate/build-prompt";
+import {
+  buildSystemPrompt,
+  getDefaultPromptContent,
+} from "@/lib/translate/build-prompt";
 import Anthropic from "@anthropic-ai/sdk";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
 
 const targetLanguageDefault = "English";
+const OPENAI_MODEL = "gpt-4o-mini";
+const CLAUDE_MODEL = "claude-sonnet-4-6";
+const GEMINI_MODEL = "gemini-2.5-flash";
 type Provider = "openai" | "claude" | "gemini";
 
 export async function POST(request: Request) {
@@ -42,14 +48,14 @@ export async function POST(request: Request) {
     if (provider) {
       if (provider === "openai") {
         const result = await translateOpenAI(systemPrompt, text);
-        return NextResponse.json({ text: result });
+        return NextResponse.json({ text: result, model: OPENAI_MODEL });
       }
       if (provider === "claude") {
         const result = await translateClaude(systemPrompt, text);
-        return NextResponse.json({ text: result });
+        return NextResponse.json({ text: result, model: CLAUDE_MODEL });
       }
       const result = await translateGemini(systemPrompt, text);
-      return NextResponse.json({ text: result });
+      return NextResponse.json({ text: result, model: GEMINI_MODEL });
     }
 
     const results = await Promise.allSettled([
@@ -60,16 +66,28 @@ export async function POST(request: Request) {
 
     const openai =
       results[0].status === "fulfilled"
-        ? { text: results[0].value, error: undefined }
-        : { text: undefined, error: String(results[0].reason) };
+        ? { text: results[0].value, error: undefined, model: OPENAI_MODEL }
+        : {
+            text: undefined,
+            error: String(results[0].reason),
+            model: OPENAI_MODEL,
+          };
     const claude =
       results[1].status === "fulfilled"
-        ? { text: results[1].value, error: undefined }
-        : { text: undefined, error: String(results[1].reason) };
+        ? { text: results[1].value, error: undefined, model: CLAUDE_MODEL }
+        : {
+            text: undefined,
+            error: String(results[1].reason),
+            model: CLAUDE_MODEL,
+          };
     const gemini =
       results[2].status === "fulfilled"
-        ? { text: results[2].value, error: undefined }
-        : { text: undefined, error: String(results[2].reason) };
+        ? { text: results[2].value, error: undefined, model: GEMINI_MODEL }
+        : {
+            text: undefined,
+            error: String(results[2].reason),
+            model: GEMINI_MODEL,
+          };
 
     return NextResponse.json({ openai, claude, gemini });
   } catch (err) {
