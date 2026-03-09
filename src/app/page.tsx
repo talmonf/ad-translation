@@ -144,13 +144,29 @@ function ResultPanel({
   result?: Result;
   loading: boolean;
 }) {
+  const hasError = !!result?.error;
+
   return (
-    <div className="border border-gray-200 rounded-lg p-4 bg-white shadow-sm">
+    <div className="relative border border-gray-200 rounded-lg p-4 bg-white shadow-sm">
       <h2 className="font-medium text-gray-900 mb-2">{title}</h2>
+      {hasError && (
+        <button
+          type="button"
+          onClick={() =>
+            navigator.clipboard.writeText(result?.error ?? "")
+          }
+          className="absolute top-3 right-3 text-xs text-gray-400 hover:text-gray-700"
+          aria-label="Copy error message"
+        >
+          Copy
+        </button>
+      )}
       {loading ? (
         <p className="text-gray-500 text-sm">Loading…</p>
       ) : result?.error ? (
-        <p className="text-red-600 text-sm">{result.error}</p>
+        <p className="text-red-600 text-xs whitespace-pre-wrap break-words max-h-64 overflow-auto">
+          {result.error}
+        </p>
       ) : result?.text != null ? (
         <p className="text-gray-800 whitespace-pre-wrap">{result.text}</p>
       ) : null}

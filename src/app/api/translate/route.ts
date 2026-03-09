@@ -108,7 +108,7 @@ async function translateClaude(
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY not set");
   const anthropic = new Anthropic({ apiKey });
   const message = await anthropic.messages.create({
-    model: "claude-3-5-haiku-20241022",
+    model: "claude-3-5-sonnet-latest",
     max_tokens: 1024,
     system: systemPrompt,
     messages: [{ role: "user", content: userMessage }],
@@ -126,7 +126,7 @@ async function translateGemini(
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("GEMINI_API_KEY not set");
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-001" });
   const result = await model.generateContent({
     contents: [
       {
