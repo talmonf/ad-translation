@@ -108,7 +108,7 @@ async function translateClaude(
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY not set");
   const anthropic = new Anthropic({ apiKey });
   const message = await anthropic.messages.create({
-    model: "claude-3-5-sonnet-latest",
+    model: "claude-sonnet-4-6",
     max_tokens: 1024,
     system: systemPrompt,
     messages: [{ role: "user", content: userMessage }],
