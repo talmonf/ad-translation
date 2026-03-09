@@ -1,7 +1,13 @@
 import * as fs from "fs/promises";
 import * as path from "path";
 import { getBlob, setBlob } from "./blob";
-import type { Example, GlossaryEntry, PromptRecord, PromptVersion } from "./types";
+import type {
+  Example,
+  GlossaryEntry,
+  PromptRecord,
+  PromptVersion,
+  TranslationLog,
+} from "./types";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const USE_BLOB = !!process.env.BLOB_READ_WRITE_TOKEN;
@@ -130,4 +136,23 @@ export async function deleteExample(id: string): Promise<boolean> {
   if (examples.length === (await getExamples()).length) return false;
   await setExamples(examples);
   return true;
+}
+
+// Logs
+
+export async function getLogs(): Promise<TranslationLog[]> {
+  const data = await readJsonFile<TranslationLog[]>("logs.json");
+  return data ?? [];
+}
+
+export async function addLog(log: TranslationLog): Promise<TranslationLog> {
+  const logs = await getLogs();
+  logs.unshift(log);
+  await writeJsonFile("logs.json", logs.slice(0, 500));
+  return log;
+}
+
+export async function getLogById(id: string): Promise<TranslationLog | null> {
+  const logs = await getLogs();
+  return logs.find((l) => l.id === id) ?? null;
 }

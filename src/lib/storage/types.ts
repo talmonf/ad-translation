@@ -23,3 +23,36 @@ export interface Example {
   correctTranslation: string;
   explanation: string;
 }
+
+export type ProviderId = "openai" | "claude" | "gemini";
+
+export interface ProviderResultSnapshot {
+  provider: ProviderId;
+  model?: string;
+  text?: string;
+  error?: string;
+  score?: number;
+  comment?: string;
+}
+
+export interface TranslationLog {
+  id: string;
+  createdAt: string;
+  text: string;
+  targetLanguage: string;
+  promptContent: string;
+  glossarySnapshot: GlossaryEntry[];
+  providerResults: ProviderResultSnapshot[];
+  promptVersionId?: string;
+  glossaryVersionId?: string;
+  promptProposal?: {
+    fullText: string;
+    rationale?: string;
+  } | null;
+  glossaryProposal?: {
+    additions: GlossaryEntry[];
+    updates: GlossaryEntry[];
+    removals: string[];
+    rationale?: string;
+  } | null;
+}
