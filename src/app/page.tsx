@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const TARGET_LANGUAGES = [
   "English",
@@ -72,27 +72,41 @@ export default function ComparePage() {
     return data.language ?? null;
   }
 
+  useEffect(() => {
+    const trimmed = text.trim();
+    if (!trimmed) {
+      setDetectedSourceLanguage(null);
+      if (!sourceLanguage) {
+        setSourceLanguage(null);
+      }
+      return;
+    }
+
+    let cancelled = false;
+    const timeout = setTimeout(async () => {
+      try {
+        const detected = await detectSourceLanguage(trimmed);
+        if (!cancelled && detected) {
+          setDetectedSourceLanguage(detected);
+          setSourceLanguage((prev) => prev ?? detected);
+        }
+      } catch (err) {
+        console.error("Source language detection failed:", err);
+      }
+    }, 600);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+    };
+  }, [text, sourceLanguage]);
+
   async function handleTranslate() {
     if (!text.trim()) return;
     setTranslateError(null);
     const trimmed = text.trim();
 
-    // Determine source language: use manual selection if present, otherwise detect
-    let effectiveSourceLanguage = sourceLanguage;
-    if (!effectiveSourceLanguage) {
-      try {
-        const detected = await detectSourceLanguage(trimmed);
-        if (detected) {
-          effectiveSourceLanguage = detected;
-          setDetectedSourceLanguage(detected);
-          setSourceLanguage((prev) => prev ?? detected);
-        }
-      } catch (err) {
-        setTranslateError(
-          `Could not detect source language automatically: ${String(err)}`
-        );
-      }
-    }
+    const effectiveSourceLanguage = sourceLanguage ?? detectedSourceLanguage;
 
     if (
       effectiveSourceLanguage &&
