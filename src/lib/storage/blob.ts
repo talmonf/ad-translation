@@ -24,6 +24,7 @@ export async function setBlob(path: string, body: string): Promise<void> {
   await put(fullPath(path), body, {
     access: "public",
     addRandomSuffix: false,
+    allowOverwrite: true,
   });
 }
 
