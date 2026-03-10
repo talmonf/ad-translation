@@ -1,13 +1,36 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 
+// Broader list of common languages for detection
 const SUPPORTED_LANGUAGES = [
+  "Arabic",
+  "Chinese",
+  "Czech",
+  "Danish",
+  "Dutch",
   "English",
-  "Spanish",
+  "Finnish",
   "French",
   "German",
+  "Greek",
   "Hebrew",
+  "Hindi",
+  "Hungarian",
+  "Indonesian",
+  "Italian",
+  "Japanese",
+  "Korean",
+  "Norwegian",
+  "Polish",
   "Portuguese",
+  "Romanian",
+  "Russian",
+  "Spanish",
+  "Swedish",
+  "Thai",
+  "Turkish",
+  "Ukrainian",
+  "Vietnamese",
 ];
 
 export async function POST(request: Request) {
