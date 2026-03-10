@@ -11,6 +11,8 @@ const TARGET_LANGUAGES = [
   "Portuguese",
 ];
 
+const SOURCE_LANGUAGES = TARGET_LANGUAGES;
+
 type ProviderId = "openai" | "claude" | "gemini";
 
 type Result = {
@@ -41,18 +43,68 @@ export default function ComparePage() {
   const [text, setText] = useState("");
   const [targetLanguage, setTargetLanguage] = useState("English");
   const [loading, setLoading] = useState(false);
+  const [translateError, setTranslateError] = useState<string | null>(null);
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
   const [proposals, setProposals] = useState<Proposals>(null);
+  const [sourceLanguage, setSourceLanguage] = useState<string | null>(null);
+  const [detectedSourceLanguage, setDetectedSourceLanguage] = useState<
+    string | null
+  >(null);
   const [results, setResults] = useState<{
     openai?: Result;
     claude?: Result;
     gemini?: Result;
   } | null>(null);
 
+  async function detectSourceLanguage(
+    input: string
+  ): Promise<string | null> {
+    const res = await fetch("/api/detect-language", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: input }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || res.statusText);
+    }
+    return data.language ?? null;
+  }
+
   async function handleTranslate() {
     if (!text.trim()) return;
-    const payload = { text: text.trim(), targetLanguage };
+    setTranslateError(null);
+    const trimmed = text.trim();
+
+    // Determine source language: use manual selection if present, otherwise detect
+    let effectiveSourceLanguage = sourceLanguage;
+    if (!effectiveSourceLanguage) {
+      try {
+        const detected = await detectSourceLanguage(trimmed);
+        if (detected) {
+          effectiveSourceLanguage = detected;
+          setDetectedSourceLanguage(detected);
+          setSourceLanguage((prev) => prev ?? detected);
+        }
+      } catch (err) {
+        setTranslateError(
+          `Could not detect source language automatically: ${String(err)}`
+        );
+      }
+    }
+
+    if (
+      effectiveSourceLanguage &&
+      effectiveSourceLanguage === targetLanguage
+    ) {
+      setTranslateError(
+        "Source language and target language are the same. Please change one of them before translating."
+      );
+      return;
+    }
+
+    const payload = { text: trimmed, targetLanguage };
     setProposals(null);
     setLoading(true);
     setResults({
@@ -171,7 +223,10 @@ export default function ComparePage() {
           </label>
           <select
             value={targetLanguage}
-            onChange={(e) => setTargetLanguage(e.target.value)}
+            onChange={(e) => {
+              setTargetLanguage(e.target.value);
+              setTranslateError(null);
+            }}
             className="w-full max-w-xs border border-gray-300 rounded-md px-3 py-2 bg-white"
           >
             {TARGET_LANGUAGES.map((lang) => (
@@ -180,6 +235,41 @@ export default function ComparePage() {
               </option>
             ))}
           </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Source language
+          </label>
+          <p className="text-xs text-gray-500 mb-1">
+            Detected from text
+            {detectedSourceLanguage
+              ? `: ${detectedSourceLanguage} (you can change if incorrect)`
+              : " when you translate (you can then adjust if needed)."}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {SOURCE_LANGUAGES.map((lang) => (
+              <button
+                key={lang}
+                type="button"
+                onClick={() => {
+                  setSourceLanguage(lang);
+                  setTranslateError(null);
+                }}
+                className={`px-3 py-1 rounded-full border text-xs ${
+                  sourceLanguage === lang
+                    ? "bg-blue-600 text-white border-blue-600"
+                    : "border-gray-300 text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                {lang}
+                {detectedSourceLanguage === lang && (
+                  <span className="ml-1 text-[10px] opacity-80">
+                    (detected)
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -200,6 +290,11 @@ export default function ComparePage() {
         >
           {loading ? "Translating…" : "Translate"}
         </button>
+        {translateError && (
+          <p className="text-sm text-red-600 mt-1 whitespace-pre-wrap">
+            {translateError}
+          </p>
+        )}
       </div>
 
       {(results || loading) && (
