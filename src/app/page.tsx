@@ -365,7 +365,10 @@ function ResultPanel({
         <div className="mt-3 space-y-2">
           <div>
             <p className="text-xs font-medium text-gray-700 mb-1">
-              Score (1–5)
+              Score (1–5)&nbsp;
+              <span className="font-normal text-gray-500">
+                (5 = perfect, 1 = incorrect)
+              </span>
             </p>
             <div className="flex gap-2">
               {[1, 2, 3, 4, 5].map((v) => (
