@@ -83,7 +83,7 @@ export default function ComparePage() {
     const res = await fetch("/api/detect-language", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: trimmed }),
+      body: JSON.stringify({ text: input }),
     });
     const data = await res.json();
     if (!res.ok) {
