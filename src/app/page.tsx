@@ -128,12 +128,20 @@ export default function ComparePage() {
     setTranslateError(null);
     const trimmed = text.trim();
 
+    const normalizedTarget = targetLanguage.trim();
+    if (!normalizedTarget || !LANGUAGES.includes(normalizedTarget)) {
+      setTranslateError(
+        "Please choose a valid target language from the list (or type a supported language name)."
+      );
+      return;
+    }
+
     const effectiveSourceLanguage = sourceLanguage ?? detectedSourceLanguage;
 
     if (
       effectiveSourceLanguage &&
       effectiveSourceLanguage.toLowerCase().trim() ===
-        targetLanguage.toLowerCase().trim()
+        normalizedTarget.toLowerCase()
     ) {
       setTranslateError(
         "Source language and target language are the same. Please change one of them before translating."
@@ -141,7 +149,7 @@ export default function ComparePage() {
       return;
     }
 
-    const payload = { text: trimmed, targetLanguage };
+    const payload = { text: trimmed, targetLanguage: normalizedTarget };
     setProposals(null);
     setLoading(true);
     setResults({
@@ -264,7 +272,7 @@ export default function ComparePage() {
             value={targetLanguage}
             onChange={(e) => {
               const value = e.target.value.trim();
-              setTargetLanguage(value || "English"); // default to English if cleared
+              setTargetLanguage(value);
               setTranslateError(null);
             }}
             placeholder="Start typing a language, e.g. English"
