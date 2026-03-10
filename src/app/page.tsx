@@ -108,7 +108,6 @@ export default function ComparePage() {
         const detected = await detectSourceLanguage(trimmed);
         if (!cancelled && detected) {
           setDetectedSourceLanguage(detected);
-          setSourceLanguage((prev) => prev ?? detected);
         }
       } catch (err) {
         console.error("Source language detection failed:", err);
@@ -289,7 +288,7 @@ export default function ComparePage() {
               : "Automatically detected from the text; you can override using the list below."}
           </p>
           <select
-            value={sourceLanguage ?? (detectedSourceLanguage ?? "")}
+            value={sourceLanguage ?? ""}
             onChange={(e) => {
               const value = e.target.value.trim();
               setSourceLanguage(value || null);
