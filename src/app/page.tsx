@@ -108,6 +108,7 @@ export default function ComparePage() {
         const detected = await detectSourceLanguage(trimmed);
         if (!cancelled && detected) {
           setDetectedSourceLanguage(detected);
+          setSourceLanguage((prev) => prev ?? detected);
         }
       } catch (err) {
         console.error("Source language detection failed:", err);
