@@ -80,8 +80,6 @@ export default function ComparePage() {
   async function detectSourceLanguage(
     input: string
   ): Promise<string | null> {
-    const trimmed = input.trim();
-    if (!trimmed) return null;
     const res = await fetch("/api/detect-language", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -266,51 +264,48 @@ export default function ComparePage() {
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Target language
           </label>
-          <input
-            type="text"
-            list="target-language-options"
+          <select
             value={targetLanguage}
             onChange={(e) => {
-              const value = e.target.value.trim();
-              setTargetLanguage(value);
+              setTargetLanguage(e.target.value);
               setTranslateError(null);
             }}
-            placeholder="Start typing a language, e.g. English"
-            className="w-full max-w-xs border border-gray-300 rounded-md px-3 py-2 text-sm"
-          />
-          <datalist id="target-language-options">
+            className="w-full max-w-xs border border-gray-300 rounded-md px-3 py-2 bg-white text-sm"
+          >
             {LANGUAGES.map((lang) => (
-              <option key={lang} value={lang} />
+              <option key={lang} value={lang}>
+                {lang}
+              </option>
             ))}
-          </datalist>
+          </select>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Source language
           </label>
           <p className="text-xs text-gray-500 mb-1">
-            Detected from text
             {detectedSourceLanguage
-              ? `: ${detectedSourceLanguage} (you can change if incorrect)`
-              : " as you type (you can adjust if needed)."}
+              ? `Detected from text: ${detectedSourceLanguage} (you can change if incorrect)`
+              : "Automatically detected from the text; you can override using the list below."}
           </p>
-          <input
-            type="text"
-            list="source-language-options"
-            value={sourceLanguage ?? ""}
+          <select
+            value={sourceLanguage ?? (detectedSourceLanguage ?? "")}
             onChange={(e) => {
               const value = e.target.value.trim();
               setSourceLanguage(value || null);
               setTranslateError(null);
             }}
-            placeholder="Start typing a language, e.g. Hebrew"
-            className="w-full max-w-xs border border-gray-300 rounded-md px-3 py-2 text-sm"
-          />
-          <datalist id="source-language-options">
+            className="w-full max-w-xs border border-gray-300 rounded-md px-3 py-2 bg-white text-sm"
+          >
+            <option value="" disabled>
+              Select source language
+            </option>
             {LANGUAGES.map((lang) => (
-              <option key={lang} value={lang} />
+              <option key={lang} value={lang}>
+                {lang}
+              </option>
             ))}
-          </datalist>
+          </select>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
