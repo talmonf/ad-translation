@@ -14,6 +14,29 @@ const CLAUDE_MODEL = "claude-sonnet-4-6";
 const GEMINI_MODEL = "gemini-2.5-flash";
 type Provider = "openai" | "claude" | "gemini";
 
+function normalizeTranslationOutput(raw: string): string {
+  let text = raw.trim();
+  if (!text) return text;
+
+  // Keep only the first logical paragraph (up to the first blank line),
+  // which should contain the actual translation. This strips explanations,
+  // notes, or multiple options that follow.
+  const doubleNewlineIndex = text.indexOf("\n\n");
+  if (doubleNewlineIndex !== -1) {
+    text = text.slice(0, doubleNewlineIndex).trim();
+  }
+
+  // Strip leading/trailing quotes if the model wrapped the sentence.
+  if (
+    (text.startsWith('"') && text.endsWith('"')) ||
+    (text.startsWith("“") && text.endsWith("”"))
+  ) {
+    text = text.slice(1, -1).trim();
+  }
+
+  return text;
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -115,7 +138,7 @@ async function translateOpenAI(
   });
   const content = completion.choices[0]?.message?.content;
   if (content == null) throw new Error("Empty OpenAI response");
-  return content.trim();
+  return normalizeTranslationOutput(content);
 }
 
 async function translateClaude(
@@ -134,7 +157,7 @@ async function translateClaude(
   const block = message.content.find((b) => b.type === "text");
   const text = block && block.type === "text" ? block.text : "";
   if (!text) throw new Error("Empty Claude response");
-  return text.trim();
+  return normalizeTranslationOutput(text);
 }
 
 async function translateGemini(
@@ -158,5 +181,5 @@ async function translateGemini(
   const response = result.response;
   const content = response.text();
   if (!content) throw new Error("Empty Gemini response");
-  return content.trim();
+  return normalizeTranslationOutput(content);
 }

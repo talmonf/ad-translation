@@ -9,7 +9,7 @@ Target language: {{TARGET_LANGUAGE}}
 Glossary (use these mappings; do not translate these terms as common words):
 {{GLOSSARY}}
 
-Output only the translation, no explanation.`;
+CRITICAL: Return only the final translated message text, with no explanations, no notes, no options, no bullets, and no extra formatting. Do NOT show multiple options or a breakdown of terms.`;
 
 export function buildSystemPrompt(
   promptTemplate: string,
@@ -26,9 +26,17 @@ export function buildSystemPrompt(
           .join("\n")
       : "(No glossary entries yet.)";
 
-  return promptTemplate
+  const base = promptTemplate
     .replace(/\{\{GLOSSARY\}\}/g, glossaryBlock)
     .replace(/\{\{TARGET_LANGUAGE\}\}/g, targetLanguage);
+
+  // Ensure the "translation only" rule is always present, even if a custom
+  // prompt omits it (for example, after feedback-driven edits).
+  if (!/Return only the final translated message text/i.test(base)) {
+    return `${base.trim()}\n\nCRITICAL: Return only the final translated message text, with no explanations, no notes, no options, no bullets, and no extra formatting.`;
+  }
+
+  return base;
 }
 
 export function getDefaultPromptContent(): string {
