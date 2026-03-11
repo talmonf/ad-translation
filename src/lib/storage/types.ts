@@ -50,8 +50,6 @@ export interface TranslationLog {
   promptContent: string;
   glossarySnapshot: GlossaryEntry[];
   providerResults: ProviderResultSnapshot[];
-  promptVersionId?: string;
-  glossaryVersionId?: string;
   promptProposal?: {
     fullText: string;
     rationale?: string;
