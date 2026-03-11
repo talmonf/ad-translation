@@ -1,6 +1,7 @@
 import {
   addGlossaryVersion,
   addPromptVersion,
+  getGlossary,
   getLogById,
   setGlossary,
   setPrompt,
@@ -13,6 +14,16 @@ interface ApplyFeedbackRequestBody {
   logId: string;
   promptFullText?: string | null;
   action?: TranslationLog["applyAction"];
+  promptProposal?: {
+    fullText: string;
+    rationale?: string;
+  } | null;
+  glossaryProposal?: {
+    additions: GlossaryEntry[];
+    updates: GlossaryEntry[];
+    removals: string[];
+    rationale?: string;
+  } | null;
 }
 
 export async function POST(request: Request) {
@@ -26,13 +37,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const log = await getLogById(logId);
-    if (!log) {
-      return NextResponse.json(
-        { error: "Log not found" },
-        { status: 404 }
-      );
-    }
+    // Best-effort: try to find the log, but don't fail hard if it is missing.
+    const log = await getLogById(logId).catch(() => null);
 
     const applyAction: TranslationLog["applyAction"] =
       body.action === "apply-and-retranslate" || body.action === "apply-only"
@@ -47,25 +53,31 @@ export async function POST(request: Request) {
       typeof body.promptFullText === "string"
         ? body.promptFullText.trim()
         : undefined;
-    const promptTextFromProposal = log.promptProposal?.fullText?.trim();
+    const promptTextFromProposal =
+      body.promptProposal?.fullText?.trim() ??
+      log?.promptProposal?.fullText?.trim();
     const nextPromptText = promptTextFromBody || promptTextFromProposal;
 
     if (nextPromptText) {
       const record = await setPrompt(nextPromptText);
       const version = await addPromptVersion(
         nextPromptText,
-        `From feedback ${log.id}`
+        `From feedback ${logId}`
       );
       promptVersionId = version.id;
       // keep record.id implicit; consumers use current prompt content
     }
 
-    // Apply glossary changes if a proposal exists
-    if (log.glossarySnapshot && log.glossaryProposal) {
-      const base: GlossaryEntry[] = Array.isArray(log.glossarySnapshot)
+    // Apply glossary changes if a proposal exists (from body or log)
+    const proposalFromBody = body.glossaryProposal;
+    const proposalFromLog = log?.glossaryProposal ?? null;
+    const glossaryProposal = proposalFromBody ?? proposalFromLog;
+
+    if (glossaryProposal) {
+      const base: GlossaryEntry[] = log?.glossarySnapshot?.length
         ? [...log.glossarySnapshot]
-        : [];
-      const { additions, updates, removals } = log.glossaryProposal;
+        : await getGlossary();
+      const { additions, updates, removals } = glossaryProposal;
 
       let nextGlossary: GlossaryEntry[] = base;
 
@@ -109,21 +121,24 @@ export async function POST(request: Request) {
       await setGlossary(nextGlossary);
       const gv = await addGlossaryVersion(
         nextGlossary,
-        `From feedback ${log.id}`
+        `From feedback ${logId}`
       );
       glossaryVersionId = gv.id;
     }
 
     const appliedAt = new Date().toISOString();
-    await updateLog(log.id, {
-      promptVersionId,
-      glossaryVersionId,
-      appliedAt,
-      applyAction,
-    });
+
+    if (log) {
+      await updateLog(log.id, {
+        promptVersionId,
+        glossaryVersionId,
+        appliedAt,
+        applyAction,
+      });
+    }
 
     return NextResponse.json({
-      logId: log.id,
+      logId,
       promptVersionId,
       glossaryVersionId,
       appliedAt,

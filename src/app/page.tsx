@@ -52,8 +52,16 @@ type Proposals = {
     rationale?: string;
   } | null;
   glossary: {
-    additions: unknown[];
-    updates: unknown[];
+    additions: {
+      term: string;
+      translationOrDefinition: string;
+      note?: string;
+    }[];
+    updates: {
+      term: string;
+      translationOrDefinition: string;
+      note?: string;
+    }[];
     removals: string[];
     rationale?: string;
   } | null;
@@ -244,6 +252,8 @@ export default function ComparePage() {
           logId: proposals.logId,
           promptFullText: proposals.prompt?.fullText ?? null,
           action: retranslate ? "apply-and-retranslate" : "apply-only",
+          promptProposal: proposals.prompt,
+          glossaryProposal: proposals.glossary,
         }),
       });
       const data = await res.json();
