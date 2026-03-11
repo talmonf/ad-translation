@@ -1,13 +1,12 @@
 import { deleteGlossaryVersion, getGlossaryVersions, setGlossary } from "@/lib/storage";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-interface RouteParams {
-  params: { id: string };
-}
-
-export async function DELETE(_: Request, { params }: RouteParams) {
+export async function DELETE(
+  _request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
-    const id = params.id;
+    const { id } = await context.params;
     if (!id) {
       return NextResponse.json({ error: "id is required" }, { status: 400 });
     }
@@ -27,9 +26,12 @@ export async function DELETE(_: Request, { params }: RouteParams) {
   }
 }
 
-export async function POST(_: Request, { params }: RouteParams) {
+export async function POST(
+  _request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
-    const id = params.id;
+    const { id } = await context.params;
     if (!id) {
       return NextResponse.json({ error: "id is required" }, { status: 400 });
     }
