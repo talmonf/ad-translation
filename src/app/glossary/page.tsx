@@ -8,6 +8,13 @@ interface GlossaryEntry {
   note?: string;
 }
 
+interface GlossaryVersion {
+  id: string;
+  name?: string;
+  entries: GlossaryEntry[];
+  createdAt: string;
+}
+
 export default function GlossaryPage() {
   const [entries, setEntries] = useState<GlossaryEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -17,18 +24,29 @@ export default function GlossaryPage() {
   const [newTranslation, setNewTranslation] = useState("");
   const [newNote, setNewNote] = useState("");
   const [message, setMessage] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+  const [versions, setVersions] = useState<GlossaryVersion[]>([]);
+  const [versionsLoading, setVersionsLoading] = useState(true);
+  const [savingVersion, setSavingVersion] = useState(false);
+  const [versionName, setVersionName] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
+    setVersionsLoading(true);
     try {
       const res = await fetch("/api/glossary");
       const data = await res.json();
       if (res.ok) setEntries(Array.isArray(data) ? data : []);
       else throw new Error(data.error || "Failed to load");
+      const vRes = await fetch("/api/glossary/versions");
+      const vData = await vRes.json();
+      if (vRes.ok) {
+        setVersions(Array.isArray(vData) ? vData : []);
+      }
     } catch (e) {
       setMessage({ type: "err", text: String(e) });
     } finally {
       setLoading(false);
+      setVersionsLoading(false);
     }
   }, []);
 
@@ -111,6 +129,52 @@ export default function GlossaryPage() {
     }
   }
 
+  async function handleSaveVersion() {
+    if (!entries.length) return;
+    setSavingVersion(true);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/glossary/versions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: versionName.trim() || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to save version");
+      setVersions((prev) => [data, ...prev]);
+      setVersionName("");
+      setMessage({ type: "ok", text: "Glossary snapshot saved." });
+    } catch (e) {
+      setMessage({ type: "err", text: String(e) });
+    } finally {
+      setSavingVersion(false);
+    }
+  }
+
+  async function handleRestoreVersion(version: GlossaryVersion) {
+    setEntries(version.entries);
+    setMessage({
+      type: "ok",
+      text: "Restored glossary from version. Click Save all to persist.",
+    });
+  }
+
+  async function handleDeleteVersion(id: string) {
+    try {
+      const res = await fetch(`/api/glossary/versions/${id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Failed to delete version");
+      setVersions((prev) => prev.filter((v) => v.id !== id));
+      setMessage({ type: "ok", text: "Glossary version deleted." });
+    } catch (e) {
+      setMessage({ type: "err", text: String(e) });
+    }
+  }
+
   if (loading) {
     return (
       <main className="p-6">
@@ -169,7 +233,7 @@ export default function GlossaryPage() {
         </button>
       </div>
 
-      <div className="flex justify-end mb-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
         <button
           onClick={handleSaveAll}
           disabled={saving}
@@ -177,6 +241,22 @@ export default function GlossaryPage() {
         >
           {saving ? "Saving…" : "Save all"}
         </button>
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            placeholder="Snapshot name (optional)"
+            value={versionName}
+            onChange={(e) => setVersionName(e.target.value)}
+            className="border border-gray-300 rounded-md px-3 py-2 text-sm w-56"
+          />
+          <button
+            onClick={handleSaveVersion}
+            disabled={savingVersion || entries.length === 0}
+            className="px-3 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 text-sm"
+          >
+            {savingVersion ? "Saving…" : "Save snapshot"}
+          </button>
+        </div>
       </div>
       <table className="w-full border border-gray-200 rounded-lg overflow-hidden">
         <thead className="bg-gray-50">
@@ -265,6 +345,50 @@ export default function GlossaryPage() {
       {entries.length === 0 && (
         <p className="text-gray-500 text-sm mt-2">No entries. Add one above.</p>
       )}
+
+      <section className="mt-8">
+        <h2 className="text-lg font-medium mb-2">Versions</h2>
+        {versionsLoading ? (
+          <p className="text-sm text-gray-500">Loading versions…</p>
+        ) : (
+          <ul className="space-y-2">
+            {versions.map((v) => (
+              <li
+                key={v.id}
+                className="flex items-center justify-between border border-gray-200 rounded-md px-3 py-2 bg-white"
+              >
+                <div>
+                  <span className="font-medium">
+                    {v.name ?? v.id}
+                  </span>
+                  <span className="text-gray-500 text-sm ml-2">
+                    {new Date(v.createdAt).toLocaleString()}
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleRestoreVersion(v)}
+                    className="text-sm text-blue-600 hover:underline"
+                  >
+                    Restore
+                  </button>
+                  <button
+                    onClick={() => handleDeleteVersion(v.id)}
+                    className="text-sm text-red-600 hover:underline"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </li>
+            ))}
+            {versions.length === 0 && (
+              <li className="text-gray-500 text-sm">
+                No glossary versions yet. Save a snapshot above.
+              </li>
+            )}
+          </ul>
+        )}
+      </section>
     </main>
   );
 }

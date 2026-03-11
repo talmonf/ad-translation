@@ -9,6 +9,7 @@ const NAV = [
   { href: "/glossary", label: "Glossary" },
   { href: "/examples", label: "Examples" },
   { href: "/export", label: "Export" },
+  { href: "/logs", label: "Logs" },
 ];
 
 export default function Sidebar() {

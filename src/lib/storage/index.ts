@@ -4,6 +4,7 @@ import { getBlob, setBlob } from "./blob";
 import type {
   Example,
   GlossaryEntry,
+  GlossaryVersion,
   PromptRecord,
   PromptVersion,
   TranslationLog,
@@ -96,6 +97,33 @@ export async function setGlossary(entries: GlossaryEntry[]): Promise<void> {
   await writeJsonFile("glossary.json", entries);
 }
 
+// Glossary versions
+export async function getGlossaryVersions(): Promise<GlossaryVersion[]> {
+  const data = await readJsonFile<GlossaryVersion[]>("glossary-versions.json");
+  return data ?? [];
+}
+
+export async function addGlossaryVersion(
+  entries: GlossaryEntry[],
+  name?: string
+): Promise<GlossaryVersion> {
+  const versions = await getGlossaryVersions();
+  const version: GlossaryVersion = {
+    id: `gv-${Date.now()}`,
+    name: name ?? `Glossary snapshot ${new Date().toLocaleString()}`,
+    entries,
+    createdAt: new Date().toISOString(),
+  };
+  versions.unshift(version);
+  await writeJsonFile("glossary-versions.json", versions.slice(0, 50));
+  return version;
+}
+
+export async function deleteGlossaryVersion(id: string): Promise<void> {
+  const versions = (await getGlossaryVersions()).filter((v) => v.id !== id);
+  await writeJsonFile("glossary-versions.json", versions);
+}
+
 // Examples
 export async function getExamples(): Promise<Example[]> {
   const data = await readJsonFile<Example[]>("examples.json");
@@ -155,4 +183,17 @@ export async function addLog(log: TranslationLog): Promise<TranslationLog> {
 export async function getLogById(id: string): Promise<TranslationLog | null> {
   const logs = await getLogs();
   return logs.find((l) => l.id === id) ?? null;
+}
+
+export async function updateLog(
+  id: string,
+  updates: Partial<TranslationLog>
+): Promise<TranslationLog | null> {
+  const logs = await getLogs();
+  const idx = logs.findIndex((l) => l.id === id);
+  if (idx === -1) return null;
+  const updated: TranslationLog = { ...logs[idx], ...updates };
+  logs[idx] = updated;
+  await writeJsonFile("logs.json", logs);
+  return updated;
 }

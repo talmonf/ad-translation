@@ -17,6 +17,13 @@ export interface GlossaryEntry {
   note?: string;
 }
 
+export interface GlossaryVersion {
+  id: string;
+  name?: string;
+  entries: GlossaryEntry[];
+  createdAt: string;
+}
+
 export interface Example {
   id: string;
   sourcePhrase: string;
@@ -55,4 +62,8 @@ export interface TranslationLog {
     removals: string[];
     rationale?: string;
   } | null;
+  promptVersionId?: string;
+  glossaryVersionId?: string;
+  appliedAt?: string;
+  applyAction?: "apply-only" | "apply-and-retranslate";
 }

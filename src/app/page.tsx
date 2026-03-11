@@ -67,6 +67,8 @@ export default function ComparePage() {
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
   const [proposals, setProposals] = useState<Proposals>(null);
+  const [applyingChanges, setApplyingChanges] = useState(false);
+  const [applyError, setApplyError] = useState<string | null>(null);
   const [sourceLanguage, setSourceLanguage] = useState<string | null>(null);
   const [detectedSourceLanguage, setDetectedSourceLanguage] = useState<
     string | null
@@ -230,6 +232,36 @@ export default function ComparePage() {
     }
   }
 
+  async function handleApplyChanges(retranslate: boolean) {
+    if (!proposals) return;
+    setApplyingChanges(true);
+    setApplyError(null);
+    try {
+      const res = await fetch("/api/feedback/apply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          logId: proposals.logId,
+          promptFullText: proposals.prompt?.fullText ?? null,
+          action: retranslate ? "apply-and-retranslate" : "apply-only",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || res.statusText);
+      }
+      // Clear proposals after successful apply
+      setProposals(null);
+      if (retranslate) {
+        await handleTranslate();
+      }
+    } catch (err) {
+      setApplyError(String(err));
+    } finally {
+      setApplyingChanges(false);
+    }
+  }
+
   function handleEvaluationChange(
     provider: ProviderId,
     evaluation: Evaluation
@@ -257,6 +289,27 @@ export default function ComparePage() {
       <p className="text-gray-600 mb-6">
         Enter text to translate and compare results from OpenAI, Claude, and
         Gemini.
+      </p>
+      <p className="text-xs text-gray-500 mb-6">
+        You can also{" "}
+        <a
+          href="/prompt"
+          className="text-blue-600 hover:underline"
+          target="_blank"
+          rel="noreferrer"
+        >
+          edit the prompt
+        </a>{" "}
+        and{" "}
+        <a
+          href="/glossary"
+          className="text-blue-600 hover:underline"
+          target="_blank"
+          rel="noreferrer"
+        >
+          manage the glossary
+        </a>{" "}
+        in dedicated views.
       </p>
 
       <div className="space-y-4 mb-6">
@@ -428,6 +481,33 @@ export default function ComparePage() {
                 page. For now, proposed changes are listed in the Logs view and
                 in this summary.
               </p>
+            </div>
+          )}
+          {(proposals.prompt || proposals.glossary) && (
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => handleApplyChanges(false)}
+                disabled={applyingChanges}
+                className="px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              >
+                {applyingChanges ? "Applying…" : "Apply changes only"}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleApplyChanges(true)}
+                disabled={applyingChanges}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              >
+                {applyingChanges
+                  ? "Applying & re-translating…"
+                  : "Apply & Re-translate"}
+              </button>
+              {applyError && (
+                <p className="text-xs text-red-600 whitespace-pre-wrap">
+                  {applyError}
+                </p>
+              )}
             </div>
           )}
         </section>
