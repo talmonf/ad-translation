@@ -416,7 +416,9 @@ export default function ComparePage() {
               title={p.title}
               provider={p.id}
               result={results ? results[p.id] : undefined}
-              loading={loading && results && results[p.id] === undefined}
+              loading={
+                loading && (!results || results[p.id] === undefined)
+              }
               onEvaluationChange={handleEvaluationChange}
             />
           ))}
