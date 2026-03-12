@@ -3,12 +3,20 @@
 import { useEffect, useState } from "react";
 
 interface ProviderResultSnapshot {
-  provider: "openai" | "claude" | "gemini";
+  provider:
+    | "openai-gpt-4o"
+    | "openai-gpt-4o-mini"
+    | "claude-sonnet"
+    | "claude-haiku"
+    | "gemini-pro"
+    | "gemini-flash";
   model?: string;
   text?: string;
   error?: string;
   score?: number;
   comment?: string;
+  latencyMs?: number;
+  costUsd?: number;
 }
 
 interface TranslationLog {
@@ -205,9 +213,16 @@ function LogDetail({ log }: { log: TranslationLog }) {
               key={r.provider}
               className="border border-gray-200 rounded-md p-2 bg-gray-50"
             >
-              <p className="font-medium mb-0.5 capitalize">{r.provider}</p>
+              <p className="font-medium mb-0.5">{r.provider}</p>
               {r.model && (
                 <p className="text-xs text-gray-500 mb-1">Model: {r.model}</p>
+              )}
+              {(typeof r.latencyMs === "number" || typeof r.costUsd === "number") && (
+                <p className="text-[11px] text-gray-500 mb-1">
+                  {typeof r.latencyMs === "number" && `Latency: ${Math.round(r.latencyMs)} ms`}
+                  {typeof r.latencyMs === "number" && typeof r.costUsd === "number" && " • "}
+                  {typeof r.costUsd === "number" && `Cost: $${r.costUsd.toFixed(4)}`}
+                </p>
               )}
               {typeof r.score === "number" && (
                 <p className="text-xs text-gray-700 mb-1">

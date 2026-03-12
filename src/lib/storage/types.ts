@@ -31,7 +31,13 @@ export interface Example {
   explanation: string;
 }
 
-export type ProviderId = "openai" | "claude" | "gemini";
+export type ProviderId =
+  | "openai-gpt-4o"
+  | "openai-gpt-4o-mini"
+  | "claude-sonnet"
+  | "claude-haiku"
+  | "gemini-pro"
+  | "gemini-flash";
 
 export interface ProviderResultSnapshot {
   provider: ProviderId;
@@ -40,6 +46,8 @@ export interface ProviderResultSnapshot {
   error?: string;
   score?: number;
   comment?: string;
+   latencyMs?: number;
+   costUsd?: number;
 }
 
 export interface TranslationLog {

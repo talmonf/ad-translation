@@ -33,7 +33,22 @@ const LANGUAGES = [
   "Vietnamese",
 ];
 
-type ProviderId = "openai" | "claude" | "gemini";
+type ProviderId =
+  | "openai-gpt-4o"
+  | "openai-gpt-4o-mini"
+  | "claude-sonnet"
+  | "claude-haiku"
+  | "gemini-pro"
+  | "gemini-flash";
+
+const PROVIDERS: { id: ProviderId; title: string }[] = [
+  { id: "openai-gpt-4o", title: "OpenAI gpt-4o" },
+  { id: "openai-gpt-4o-mini", title: "OpenAI gpt-4o-mini" },
+  { id: "claude-sonnet", title: "Claude Sonnet" },
+  { id: "claude-haiku", title: "Claude Haiku" },
+  { id: "gemini-pro", title: "Gemini Pro" },
+  { id: "gemini-flash", title: "Gemini Flash" },
+];
 
 type Result = {
   text?: string;
@@ -41,6 +56,8 @@ type Result = {
   model?: string;
   score?: number;
   comment?: string;
+  latencyMs?: number;
+  costUsd?: number;
 };
 
 type Evaluation = Pick<Result, "score" | "comment">;
@@ -81,11 +98,9 @@ export default function ComparePage() {
   const [detectedSourceLanguage, setDetectedSourceLanguage] = useState<
     string | null
   >(null);
-  const [results, setResults] = useState<{
-    openai?: Result;
-    claude?: Result;
-    gemini?: Result;
-  } | null>(null);
+  const [results, setResults] = useState<Record<ProviderId, Result | undefined> | null>(
+    null
+  );
 
   async function detectSourceLanguage(
     input: string
@@ -160,11 +175,12 @@ export default function ComparePage() {
     const payload = { text: trimmed, targetLanguage: normalizedTarget };
     setProposals(null);
     setLoading(true);
-    setResults({
-      openai: undefined,
-      claude: undefined,
-      gemini: undefined,
-    });
+    setResults(
+      PROVIDERS.reduce(
+        (acc, p) => ({ ...acc, [p.id]: undefined }),
+        {} as Record<ProviderId, Result | undefined>
+      )
+    );
 
     const run = async (provider: ProviderId) => {
       try {
@@ -186,7 +202,12 @@ export default function ComparePage() {
         }
         setResults((prev) => ({
           ...prev,
-          [provider]: { text: data.text, model: data.model },
+          [provider]: {
+            text: data.text,
+            model: data.model,
+            latencyMs: typeof data.latencyMs === "number" ? data.latencyMs : undefined,
+            costUsd: typeof data.costUsd === "number" ? data.costUsd : undefined,
+          },
         }));
       } catch (err) {
         setResults((prev) => ({
@@ -196,17 +217,14 @@ export default function ComparePage() {
       }
     };
 
-    await Promise.all([run("openai"), run("claude"), run("gemini")]);
+    await Promise.all(PROVIDERS.map((p) => run(p.id)));
     setLoading(false);
   }
 
   async function handleFeedbackSubmit() {
     if (!results || !text.trim()) return;
     // Require at least one score
-    const anyScore =
-      results.openai?.score ||
-      results.claude?.score ||
-      results.gemini?.score;
+    const anyScore = Object.values(results).some((r) => r?.score);
     if (!anyScore) {
       setFeedbackError("Please provide at least one score before submitting.");
       return;
@@ -286,10 +304,7 @@ export default function ComparePage() {
     });
   }
 
-  const hasAnyScore =
-    !!results?.openai?.score ||
-    !!results?.claude?.score ||
-    !!results?.gemini?.score;
+  const hasAnyScore = !!results && Object.values(results).some((r) => r?.score);
 
   return (
     <main className="max-w-6xl mx-auto p-6">
@@ -398,27 +413,16 @@ export default function ComparePage() {
 
       {(results || loading) && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <ResultPanel
-            title="OpenAI"
-            provider="openai"
-            result={results?.openai}
-            loading={loading && results?.openai === undefined}
-            onEvaluationChange={handleEvaluationChange}
-          />
-          <ResultPanel
-            title="Claude"
-            provider="claude"
-            result={results?.claude}
-            loading={loading && results?.claude === undefined}
-            onEvaluationChange={handleEvaluationChange}
-          />
-          <ResultPanel
-            title="Gemini"
-            provider="gemini"
-            result={results?.gemini}
-            loading={loading && results?.gemini === undefined}
-            onEvaluationChange={handleEvaluationChange}
-          />
+          {PROVIDERS.map((p) => (
+            <ResultPanel
+              key={p.id}
+              title={p.title}
+              provider={p.id}
+              result={results ? results[p.id] : undefined}
+              loading={loading && results && results[p.id] === undefined}
+              onEvaluationChange={handleEvaluationChange}
+            />
+          ))}
         </div>
       )}
 
@@ -560,6 +564,18 @@ function ResultPanel({
       <h2 className="font-medium text-gray-900 mb-1">{title}</h2>
       {result?.model && (
         <p className="text-xs text-gray-500 mb-2">Model: {result.model}</p>
+      )}
+      {(typeof result?.latencyMs === "number" ||
+        typeof result?.costUsd === "number") && (
+        <p className="text-[11px] text-gray-500 mb-2">
+          {typeof result?.latencyMs === "number" &&
+            `Latency: ${Math.round(result.latencyMs)} ms`}
+          {typeof result?.latencyMs === "number" &&
+            typeof result?.costUsd === "number" &&
+            " • "}
+          {typeof result?.costUsd === "number" &&
+            `Cost: $${result.costUsd.toFixed(4)}`}
+        </p>
       )}
       {hasError && (
         <button

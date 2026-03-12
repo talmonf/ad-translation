@@ -14,32 +14,20 @@ import {
   type SuggestImprovementsResult,
 } from "@/lib/feedback/suggest-improvements";
 
+interface FeedbackResultEntry {
+  text?: string;
+  error?: string;
+  model?: string;
+  score?: number;
+  comment?: string;
+  latencyMs?: number;
+  costUsd?: number;
+}
+
 interface FeedbackRequestBody {
   text: string;
   targetLanguage: string;
-  results: {
-    openai?: {
-      text?: string;
-      error?: string;
-      model?: string;
-      score?: number;
-      comment?: string;
-    };
-    claude?: {
-      text?: string;
-      error?: string;
-      model?: string;
-      score?: number;
-      comment?: string;
-    };
-    gemini?: {
-      text?: string;
-      error?: string;
-      model?: string;
-      score?: number;
-      comment?: string;
-    };
-  };
+  results: Record<string, FeedbackResultEntry | undefined>;
 }
 
 export async function POST(request: Request) {
@@ -65,28 +53,19 @@ export async function POST(request: Request) {
     const promptContent = promptRecord?.content ?? "";
 
     const providerResults: ProviderResultSnapshot[] = [];
-    const pushSnapshot = (
-      provider: ProviderResultSnapshot["provider"],
-      data:
-        | FeedbackRequestBody["results"]["openai"]
-        | FeedbackRequestBody["results"]["claude"]
-        | FeedbackRequestBody["results"]["gemini"]
-        | undefined
-    ) => {
-      if (!data) return;
+    for (const [providerKey, data] of Object.entries(body.results ?? {})) {
+      if (!data) continue;
       providerResults.push({
-        provider,
+        provider: providerKey as ProviderResultSnapshot["provider"],
         model: data.model,
         text: data.text,
         error: data.error,
         score: data.score,
         comment: data.comment,
+        latencyMs: data.latencyMs,
+        costUsd: data.costUsd,
       });
-    };
-
-    pushSnapshot("openai", body.results.openai);
-    pushSnapshot("claude", body.results.claude);
-    pushSnapshot("gemini", body.results.gemini);
+    }
 
     let suggestions: SuggestImprovementsResult = {
       promptProposal: null,
