@@ -60,6 +60,8 @@ type Result = {
   costUsd?: number;
 };
 
+type ResultsMap = Partial<Record<ProviderId, Result>>;
+
 type Evaluation = Pick<Result, "score" | "comment">;
 
 type Proposals = {
@@ -98,9 +100,7 @@ export default function ComparePage() {
   const [detectedSourceLanguage, setDetectedSourceLanguage] = useState<
     string | null
   >(null);
-  const [results, setResults] = useState<Record<ProviderId, Result | undefined> | null>(
-    null
-  );
+  const [results, setResults] = useState<ResultsMap | null>(null);
 
   async function detectSourceLanguage(
     input: string
@@ -175,12 +175,7 @@ export default function ComparePage() {
     const payload = { text: trimmed, targetLanguage: normalizedTarget };
     setProposals(null);
     setLoading(true);
-    setResults(
-      PROVIDERS.reduce(
-        (acc, p) => ({ ...acc, [p.id]: undefined }),
-        {} as Record<ProviderId, Result | undefined>
-      )
-    );
+    setResults({});
 
     const run = async (provider: ProviderId) => {
       try {
@@ -201,12 +196,14 @@ export default function ComparePage() {
           return;
         }
         setResults((prev) => ({
-          ...prev,
+          ...(prev ?? {}),
           [provider]: {
             text: data.text,
             model: data.model,
-            latencyMs: typeof data.latencyMs === "number" ? data.latencyMs : undefined,
-            costUsd: typeof data.costUsd === "number" ? data.costUsd : undefined,
+            latencyMs:
+              typeof data.latencyMs === "number" ? data.latencyMs : undefined,
+            costUsd:
+              typeof data.costUsd === "number" ? data.costUsd : undefined,
           },
         }));
       } catch (err) {
