@@ -13,10 +13,12 @@ const targetLanguageDefault = "English";
 // Model choices: compare both high-quality and fast/cheap tiers.
 const OPENAI_MODEL_4O = "gpt-4o";
 const OPENAI_MODEL_4O_MINI = "gpt-4o-mini";
-const CLAUDE_MODEL_SONNET = "claude-3.7-sonnet";
-const CLAUDE_MODEL_HAIKU = "claude-3.5-haiku";
-const GEMINI_MODEL_PRO = "gemini-2.0-pro";
-const GEMINI_MODEL_FLASH = "gemini-2.0-flash";
+// Use current Claude 4.x aliases from Anthropic docs.
+const CLAUDE_MODEL_SONNET = "claude-sonnet-4-6";
+const CLAUDE_MODEL_HAIKU = "claude-haiku-4-5";
+// Use current Gemini 2.5 models from Google Gemini API docs.
+const GEMINI_MODEL_PRO = "gemini-2.5-pro";
+const GEMINI_MODEL_FLASH = "gemini-2.5-flash";
 
 type ProviderId =
   | "openai-gpt-4o"

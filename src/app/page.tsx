@@ -41,13 +41,14 @@ type ProviderId =
   | "gemini-pro"
   | "gemini-flash";
 
+// Order: top row = simpler/faster models, bottom row = stronger models.
 const PROVIDERS: { id: ProviderId; title: string }[] = [
-  { id: "openai-gpt-4o", title: "OpenAI gpt-4o" },
   { id: "openai-gpt-4o-mini", title: "OpenAI gpt-4o-mini" },
-  { id: "claude-sonnet", title: "Claude Sonnet" },
-  { id: "claude-haiku", title: "Claude Haiku" },
-  { id: "gemini-pro", title: "Gemini Pro" },
-  { id: "gemini-flash", title: "Gemini Flash" },
+  { id: "claude-haiku", title: "Claude Haiku 4.5" },
+  { id: "gemini-flash", title: "Gemini 2.5 Flash" },
+  { id: "openai-gpt-4o", title: "OpenAI gpt-4o" },
+  { id: "claude-sonnet", title: "Claude Sonnet 4.6" },
+  { id: "gemini-pro", title: "Gemini 2.5 Pro" },
 ];
 
 type Result = {
